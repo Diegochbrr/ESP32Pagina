@@ -1,1 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
 
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HeadController — Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap"
+        rel="stylesheet" />
+</head>
+
+<body class="dark">
+
+    <!-- HEADER -->
+    <header>
+        <div class="header-left">
+            <div class="logo">
+                <span class="logo-icon">◈</span>
+                <div>
+                    <span class="logo-title">HEAD<span class="accent">CTRL</span></span>
+                    <span class="logo-sub">ESP32 · MPU-6050 · Fuzzy Logic</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="theme-btn" id="themeToggle" title="Cambiar tema">☽</button>
+            <div class="status-pill" id="statusPill">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Desconectado</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN GRID -->
+    <main>
+
+        <!-- COLUMNA IZQUIERDA: Conexión + Stats -->
+        <aside class="sidebar">
+
+            <!-- Panel de conexión -->
+            <section class="card" id="connectionCard">
+                <h2 class="card-title">Conexión</h2>
+
+                <div class="tab-group">
+                    <button class="tab active" data-tab="serial">⚡ Serial</button>
+                    <button class="tab" data-tab="bluetooth">⬡ Bluetooth</button>
+                </div>
+
+                <!-- Serial -->
+                <div class="tab-content active" id="tab-serial">
+                    <div class="field-group">
+                        <label>Puerto COM</label>
+                        <input type="text" id="serialPort" value="COM5" placeholder="COM5 / /dev/ttyUSB0" />
+                    </div>
+                    <div class="field-group">
+                        <label>Baudrate</label>
+                        <select id="baudrate">
+                            <option value="9600">9600</option>
+                            <option value="57600">57600</option>
+                            <option value="115200" selected>115200</option>
+                        </select>
+                    </div>
+                    <p class="info-note">⚠ Serial Web requiere Chrome 89+ con flag
+                        <code>#enable-experimental-web-platform-features</code> activado.</p>
+                    <button class="btn-connect" id="btnSerial">Conectar Serial</button>
+                </div>
+
+                <!-- Bluetooth -->
+                <div class="tab-content" id="tab-bluetooth">
+                    <p class="info-note">Busca dispositivos BLE cercanos con nombre <strong>HeadController</strong>.</p>
+                    <div class="field-group">
+                        <label>Nombre BLE</label>
+                        <input type="text" id="bleName" value="HeadController" />
+                    </div>
+                    <p class="info-note">⚠ Web Bluetooth requiere Chrome y conexión HTTPS o localhost.</p>
+                    <button class="btn-connect" id="btnBluetooth">Buscar y Conectar BLE</button>
+                </div>
+
+                <button class="btn-disconnect hidden" id="btnDisconnect">✕ Desconectar</button>
+            </section>
+
+            <!-- Estadísticas de sesión -->
+            <section class="card">
+                <h2 class="card-title">Sesión</h2>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <span class="stat-val" id="statTime">00:00:00</span>
+                        <span class="stat-label">Tiempo</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-val" id="statTotal">0</span>
+                        <span class="stat-label">Comandos</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-val" id="statFPS">0</span>
+                        <span class="stat-label">Hz</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-val" id="statIntensity">0.00</span>
+                        <span class="stat-label">Intensidad</span>
+                    </div>
+                </div>
+                <button class="btn-reset" id="btnReset">↺ Reiniciar sesión</button>
+            </section>
+
+            <!-- Conteo por acción -->
+            <section class="card">
+                <h2 class="card-title">Acciones</h2>
+                <div class="action-counts">
+                    <div class="action-row"><span class="dir-label up">▲ UP</span>
+                        <div class="bar-wrap">
+                            <div class="bar" id="barUp"></div>
+                        </div><span class="count" id="cntUp">0</span>
+                    </div>
+                    <div class="action-row"><span class="dir-label down">▼ DOWN</span>
+                        <div class="bar-wrap">
+                            <div class="bar" id="barDown"></div>
+                        </div><span class="count" id="cntDown">0</span>
+                    </div>
+                    <div class="action-row"><span class="dir-label left">◀ LEFT</span>
+                        <div class="bar-wrap">
+                            <div class="bar" id="barLeft"></div>
+                        </div><span class="count" id="cntLeft">0</span>
+                    </div>
+                    <div class="action-row"><span class="dir-label right">▶ RIGHT</span>
+                        <div class="bar-wrap">
+                            <div class="bar" id="barRight"></div>
+                        </div><span class="count" id="cntRight">0</span>
+                    </div>
+                    <div class="action-row"><span class="dir-label idle">● IDLE</span>
+                        <div class="bar-wrap">
+                            <div class="bar" id="barIdle"></div>
+                        </div><span class="count" id="cntIdle">0</span>
+                    </div>
+                </div>
+            </section>
+
+        </aside>
+
+        <!-- COLUMNA CENTRAL: Visualización -->
+        <section class="center-col">
+
+            <!-- Joystick visual -->
+            <div class="card joystick-card">
+                <h2 class="card-title">Posición de Cabeza</h2>
+                <div class="joystick-wrap">
+                    <div class="joystick-bg">
+                        <div class="joystick-ring ring-outer"></div>
+                        <div class="joystick-ring ring-inner"></div>
+                        <div class="joystick-cross">
+                            <span class="cross-label top">ADELANTE</span>
+                            <span class="cross-label bottom">ATRÁS</span>
+                            <span class="cross-label left-l">IZQ</span>
+                            <span class="cross-label right-l">DER</span>
+                        </div>
+                        <div class="joystick-dot" id="joystickDot"></div>
+                        <div class="joystick-trail" id="joystickTrail"></div>
+                    </div>
+                </div>
+                <div class="angle-display">
+                    <div class="angle-item">
+                        <span class="angle-label">PITCH</span>
+                        <span class="angle-val" id="pitchVal">+0.0°</span>
+                    </div>
+                    <div class="angle-sep">|</div>
+                    <div class="angle-item">
+                        <span class="angle-label">ROLL</span>
+                        <span class="angle-val" id="rollVal">+0.0°</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teclas activas -->
+            <div class="card keys-card">
+                <h2 class="card-title">Teclas Activas</h2>
+                <div class="keys-display">
+                    <div class="key-row">
+                        <div class="key" id="keyUp">▲</div>
+                    </div>
+                    <div class="key-row">
+                        <div class="key" id="keyLeft">◀</div>
+                        <div class="key" id="keyDown">▼</div>
+                        <div class="key" id="keyRight">▶</div>
+                    </div>
+                </div>
+                <div class="active-combo" id="activeCombo">IDLE</div>
+            </div>
+
+            <!-- Intensidad en tiempo real -->
+            <div class="card intensity-card">
+                <h2 class="card-title">Intensidad en Tiempo Real</h2>
+                <div class="intensity-bars">
+                    <div class="int-bar-wrap">
+                        <span class="int-label">UP</span>
+                        <div class="int-track">
+                            <div class="int-fill up" id="intUp"></div>
+                        </div>
+                        <span class="int-pct" id="pctUp">0%</span>
+                    </div>
+                    <div class="int-bar-wrap">
+                        <span class="int-label">DOWN</span>
+                        <div class="int-track">
+                            <div class="int-fill down" id="intDown"></div>
+                        </div>
+                        <span class="int-pct" id="pctDown">0%</span>
+                    </div>
+                    <div class="int-bar-wrap">
+                        <span class="int-label">LEFT</span>
+                        <div class="int-track">
+                            <div class="int-fill left" id="intLeft"></div>
+                        </div>
+                        <span class="int-pct" id="pctLeft">0%</span>
+                    </div>
+                    <div class="int-bar-wrap">
+                        <span class="int-label">RIGHT</span>
+                        <div class="int-track">
+                            <div class="int-fill right" id="intRight"></div>
+                        </div>
+                        <span class="int-pct" id="pctRight">0%</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- COLUMNA DERECHA: Log -->
+        <aside class="log-col">
+            <section class="card log-card">
+                <div class="log-header">
+                    <h2 class="card-title">Log de Datos</h2>
+                    <button class="btn-clear" id="btnClearLog">Limpiar</button>
+                </div>
+                <div class="log-body" id="logBody"></div>
+            </section>
+
+            <!-- Raw data -->
+            <section class="card">
+                <h2 class="card-title">Último Mensaje Raw</h2>
+                <div class="raw-display" id="rawDisplay">—</div>
+            </section>
+
+            <!-- Configuración fuzzy -->
+            <section class="card">
+                <h2 class="card-title">Umbrales Fuzzy</h2>
+                <div class="field-group">
+                    <label>Zona muerta (°)</label>
+                    <input type="range" id="sliderDead" min="1" max="10" value="3" />
+                    <span class="slider-val" id="valDead">3°</span>
+                </div>
+                <div class="field-group">
+                    <label>Inicio leve (°)</label>
+                    <input type="range" id="sliderSoft" min="4" max="20" value="6" />
+                    <span class="slider-val" id="valSoft">6°</span>
+                </div>
+                <div class="field-group">
+                    <label>Umbral activación</label>
+                    <input type="range" id="sliderThresh" min="1" max="30" value="8" />
+                    <span class="slider-val" id="valThresh">0.08</span>
+                </div>
+                <p class="info-note">Los umbrales aquí son solo visuales. Para aplicarlos al ESP32 modifica fuzzy.py.
+                </p>
+            </section>
+        </aside>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
