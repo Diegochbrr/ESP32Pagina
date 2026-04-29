@@ -188,24 +188,27 @@ function resetSession() {
 els.btnReset.addEventListener('click', resetSession);
 
 // ── Parsear mensaje del ESP32 ─────────────────
-// Formato: "UP:0.85,RIGHT:0.62" o "IDLE:0.000" o "pitch=X,roll=Y,UP:0.5"
+// Formato extendido: "P:3.1,R:-12.8,UP:0.85,RIGHT:0.62"
+// Formato legacy:    "UP:0.85,RIGHT:0.62" o "IDLE:0.000"
 function parseMessage(raw) {
     raw = raw.trim();
     if (!raw) return;
+
+    // Filtrar mensajes de boot/debug del ESP32
+    if (/rst:|boot:|load:|entry|configsip|clk_drv|mode:DIO|Calibrando|giroscopio|posici/.test(raw)) return;
 
     els.rawDisplay.textContent = raw;
     state.totalCommands++;
     state.frameCount++;
 
-    // Extraer pitch/roll si vienen en el mensaje
-    // Formato debug: "pitch=+3.1° roll=+12.8° → RIGHT:0.862"
-    const pitchMatch = raw.match(/pitch=([+-]?\d+\.?\d*)/);
-    const rollMatch = raw.match(/roll=([+-]?\d+\.?\d*)/);
+    // Extraer pitch — soporta P:3.1 y P:-12.8
+    const pitchMatch = raw.match(/\bP:([+-]?\d+\.?\d*)/);
+    const rollMatch = raw.match(/\bR:([+-]?\d+\.?\d*)/);
     if (pitchMatch) state.pitch = parseFloat(pitchMatch[1]);
     if (rollMatch) state.roll = parseFloat(rollMatch[1]);
 
-    // Extraer acciones: buscar patrón ACTION:FLOAT
-    const actionPattern = /(UP|DOWN|LEFT|RIGHT|IDLE):(\d+\.?\d*)/g;
+    // Extraer acciones: UP, DOWN, LEFT, RIGHT, IDLE
+    const actionPattern = /\b(UP|DOWN|LEFT|RIGHT|IDLE):(\d+\.?\d*)/g;
     const active = {};
     let match;
     while ((match = actionPattern.exec(raw)) !== null) {
