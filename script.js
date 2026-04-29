@@ -201,9 +201,9 @@ function parseMessage(raw) {
     state.totalCommands++;
     state.frameCount++;
 
-    // Extraer pitch — soporta P:3.1 y P:-12.8
-    const pitchMatch = raw.match(/\bP:([+-]?\d+\.?\d*)/);
-    const rollMatch = raw.match(/\bR:([+-]?\d+\.?\d*)/);
+    // Extraer pitch/roll — formato P:3.1,R:-12.8
+    const pitchMatch = raw.match(/(?:^|,)P:([+-]?\d+\.?\d*)/);
+    const rollMatch = raw.match(/(?:^|,)R:([+-]?\d+\.?\d*)/);
     if (pitchMatch) state.pitch = parseFloat(pitchMatch[1]);
     if (rollMatch) state.roll = parseFloat(rollMatch[1]);
 
@@ -216,6 +216,17 @@ function parseMessage(raw) {
     }
 
     if (Object.keys(active).length === 0) return;
+
+    // Si no vienen P/R en el mensaje, inferir posición desde acciones (formato viejo)
+    if (!pitchMatch && !rollMatch) {
+        const MAX = 28;
+        const up = active['UP'] || 0;
+        const down = active['DOWN'] || 0;
+        const left = active['LEFT'] || 0;
+        const right = active['RIGHT'] || 0;
+        state.pitch = (up - down) * MAX;
+        state.roll = (right - left) * MAX;
+    }
 
     // Actualizar intensidades
     ['UP', 'DOWN', 'LEFT', 'RIGHT'].forEach(dir => {
