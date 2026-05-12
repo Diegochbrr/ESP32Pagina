@@ -86,12 +86,7 @@ const els = {
     logBody: $('logBody'),
     rawDisplay: $('rawDisplay'),
 
-    sliderDead: $('sliderDead'),
-    sliderSoft: $('sliderSoft'),
-    sliderThresh: $('sliderThresh'),
-    valDead: $('valDead'),
-    valSoft: $('valSoft'),
-    valThresh: $('valThresh'),
+
 };
 
 // ── Tema ───────────────────────────────────────
@@ -115,16 +110,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     });
 });
 
-// ── Sliders ────────────────────────────────────
-els.sliderDead.addEventListener('input', () => {
-    els.valDead.textContent = els.sliderDead.value + '°';
-});
-els.sliderSoft.addEventListener('input', () => {
-    els.valSoft.textContent = els.sliderSoft.value + '°';
-});
-els.sliderThresh.addEventListener('input', () => {
-    els.valThresh.textContent = (els.sliderThresh.value / 100).toFixed(2);
-});
+
 
 // ── Log ────────────────────────────────────────
 function log(msg, type = 'info') {

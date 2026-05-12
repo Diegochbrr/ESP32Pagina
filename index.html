@@ -62,7 +62,8 @@
                         </select>
                     </div>
                     <p class="info-note">⚠ Serial Web requiere Chrome 89+ con flag
-                        <code>#enable-experimental-web-platform-features</code> activado.</p>
+                        <code>#enable-experimental-web-platform-features</code> activado.
+                    </p>
                     <button class="btn-connect" id="btnSerial">Conectar Serial</button>
                 </div>
 
@@ -240,27 +241,7 @@
                 <div class="raw-display" id="rawDisplay">—</div>
             </section>
 
-            <!-- Configuración fuzzy -->
-            <section class="card">
-                <h2 class="card-title">Umbrales Fuzzy</h2>
-                <div class="field-group">
-                    <label>Zona muerta (°)</label>
-                    <input type="range" id="sliderDead" min="1" max="10" value="3" />
-                    <span class="slider-val" id="valDead">3°</span>
-                </div>
-                <div class="field-group">
-                    <label>Inicio leve (°)</label>
-                    <input type="range" id="sliderSoft" min="4" max="20" value="6" />
-                    <span class="slider-val" id="valSoft">6°</span>
-                </div>
-                <div class="field-group">
-                    <label>Umbral activación</label>
-                    <input type="range" id="sliderThresh" min="1" max="30" value="8" />
-                    <span class="slider-val" id="valThresh">0.08</span>
-                </div>
-                <p class="info-note">Los umbrales aquí son solo visuales. Para aplicarlos al ESP32 modifica fuzzy.py.
-                </p>
-            </section>
+
         </aside>
 
     </main>
