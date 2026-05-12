@@ -447,3 +447,203 @@ els.btnDisconnect.addEventListener('click', async () => {
 log('Dashboard iniciado. Selecciona Serial o Bluetooth para conectar.', 'info');
 log('Web Serial: requiere Chrome 89+ con flag experimental.', 'info');
 log('Web Bluetooth: requiere Chrome + HTTPS o localhost.', 'info');
+
+// ═══════════════════════════════════════════════
+// BASE DE DATOS — Clever Cloud via Backend
+// ═══════════════════════════════════════════════
+
+const db = {
+    url: () => $('dbUrl').value.trim().replace(/\/$/, ''),
+    connected: false,
+    sessionCount: 0,
+};
+
+// Acumuladores para calcular promedios al cerrar sesión
+const sessionAccum = {
+    intensitySum: 0,
+    intensityCount: 0,
+    fpsSum: 0,
+    fpsCount: 0,
+    dominantAction: { UP: 0, DOWN: 0, LEFT: 0, RIGHT: 0 },
+};
+
+function resetSessionAccum() {
+    sessionAccum.intensitySum = 0;
+    sessionAccum.intensityCount = 0;
+    sessionAccum.fpsSum = 0;
+    sessionAccum.fpsCount = 0;
+    sessionAccum.dominantAction = { UP: 0, DOWN: 0, LEFT: 0, RIGHT: 0 };
+}
+
+// Llamar cada vez que llega un frame para acumular datos
+function accumulateFrame(active) {
+    const dirs = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
+    let totalInt = 0;
+    dirs.forEach(d => {
+        const v = active[d] || 0;
+        totalInt += v;
+        if (v > 0.08) sessionAccum.dominantAction[d]++;
+    });
+    sessionAccum.intensitySum += totalInt / 4;
+    sessionAccum.intensityCount++;
+}
+
+// ── Probar conexión con el backend ─────────────
+async function testDbConnection() {
+    const dot = $('dbDot');
+    const status = $('dbStatus');
+    dot.className = 'db-dot loading';
+    status.textContent = 'Conectando...';
+
+    try {
+        const res = await fetch(`${db.url()}/ping`, { signal: AbortSignal.timeout(5000) });
+        const data = await res.json();
+        if (data.ok) {
+            dot.className = 'db-dot ok';
+            status.textContent = 'Conectado ✓';
+            db.connected = true;
+            loadStats();
+            loadHistory();
+        } else {
+            throw new Error('Respuesta inesperada');
+        }
+    } catch (e) {
+        dot.className = 'db-dot error';
+        status.textContent = 'Sin conexión';
+        db.connected = false;
+    }
+}
+
+// ── Cargar estadísticas generales ─────────────
+async function loadStats() {
+    try {
+        const res = await fetch(`${db.url()}/stats`);
+        const data = await res.json();
+        $('dbSessionCount').textContent = data.total_sesiones ?? '—';
+        $('dbLastSession').textContent = data.ultima_sesion
+            ? new Date(data.ultima_sesion).toLocaleString('es')
+            : '—';
+    } catch (_) { }
+}
+
+// ── Cargar historial de sesiones ───────────────
+async function loadHistory() {
+    try {
+        const res = await fetch(`${db.url()}/sesiones?limit=10`);
+        const sesiones = await res.json();
+        const body = $('historyBody');
+
+        if (!sesiones.length) {
+            body.innerHTML = '<p class="history-empty">No hay sesiones registradas aún.</p>';
+            return;
+        }
+
+        body.innerHTML = sesiones.map(s => {
+            const fecha = new Date(s.fecha_inicio).toLocaleString('es');
+            const dur = formatDuration(s.duracion_seg);
+            const badgeModo = s.modo === 'serial'
+                ? '<span class="history-badge badge-serial">Serial</span>'
+                : '<span class="history-badge badge-ble">BLE</span>';
+            return `
+        <div class="history-item">
+          <span class="history-date">${fecha}</span>
+          <div class="history-detail">
+            ${badgeModo}
+            <span class="history-badge badge-time">⏱ ${dur}</span>
+            <span class="history-badge badge-cmd">⌨ ${s.total_comandos}</span>
+            <span class="history-badge badge-cmd">↑${s.cnt_up} ↓${s.cnt_down} ←${s.cnt_left} →${s.cnt_right}</span>
+          </div>
+        </div>`;
+        }).join('');
+    } catch (_) {
+        $('historyBody').innerHTML = '<p class="history-empty">Error cargando historial.</p>';
+    }
+}
+
+function formatDuration(secs) {
+    if (!secs) return '0s';
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+}
+
+// ── Guardar sesión al desconectar ──────────────
+async function saveSession() {
+    if (!db.connected || !state.sessionStart) return;
+
+    const duracion = Math.floor((Date.now() - state.sessionStart) / 1000);
+    if (duracion < 5) return; // ignorar sesiones muy cortas
+
+    const dominant = Object.entries(sessionAccum.dominantAction)
+        .sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'IDLE';
+
+    const avgIntensity = sessionAccum.intensityCount > 0
+        ? (sessionAccum.intensitySum / sessionAccum.intensityCount).toFixed(3)
+        : 0;
+
+    const payload = {
+        fecha_inicio: new Date(state.sessionStart).toISOString(),
+        fecha_fin: new Date().toISOString(),
+        duracion_seg: duracion,
+        modo: state.mode,
+        total_comandos: state.totalCommands,
+        cnt_up: state.counts.UP || 0,
+        cnt_down: state.counts.DOWN || 0,
+        cnt_left: state.counts.LEFT || 0,
+        cnt_right: state.counts.RIGHT || 0,
+        cnt_idle: state.counts.IDLE || 0,
+        intensidad_avg: parseFloat(avgIntensity),
+        accion_dominante: dominant,
+    };
+
+    try {
+        await fetch(`${db.url()}/sesiones`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        log('Sesión guardada en la base de datos ✓', 'info');
+        loadStats();
+        loadHistory();
+    } catch (e) {
+        log('No se pudo guardar la sesión en BD', 'error');
+    }
+    resetSessionAccum();
+}
+
+// ── Hooks en eventos existentes ────────────────
+// Acumular datos en cada frame
+const _origParseMessage = parseMessage;  // no redefinible, mejor hook en updateStats
+const _origUpdateStats = updateStats;
+// Inyectar acumulación al parsear (override local)
+const _origUpdateKeys = updateKeys;
+
+// Hook: guardar sesión al desconectar
+const _origSetDisconnected = setDisconnected;
+window._hookedDisconnect = async () => {
+    await saveSession();
+    _origSetDisconnected();
+};
+els.btnDisconnect.removeEventListener('click', els.btnDisconnect._handler);
+els.btnDisconnect.addEventListener('click', async () => {
+    if (state.mode === 'serial') {
+        try { if (state.serialReader) await state.serialReader.cancel(); } catch (_) { }
+    } else if (state.mode === 'bluetooth') {
+        try {
+            if (state.bleDevice && state.bleDevice.gatt.connected)
+                state.bleDevice.gatt.disconnect();
+        } catch (_) { }
+    }
+    await saveSession();
+    setDisconnected();
+});
+
+// ── Eventos UI ─────────────────────────────────
+$('btnDbTest').addEventListener('click', testDbConnection);
+$('btnRefreshHistory').addEventListener('click', () => {
+    if (db.connected) { loadStats(); loadHistory(); }
+    else testDbConnection();
+});
