@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: headctrl-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn backend:app
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
