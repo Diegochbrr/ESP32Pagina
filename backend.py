@@ -19,11 +19,11 @@ CORS(app)  # Permite peticiones desde la página web
 # Opción 1: Variables de entorno (recomendado)
 # Opción 2: Reemplaza directamente los valores aquí
 DB_CONFIG = {
-    'host':     os.getenv('DB_HOST',     'TU_HOST.cleverapps.io'),
-    'port':     int(os.getenv('DB_PORT', '3306')),
-    'database': os.getenv('DB_NAME',     'TU_DATABASE'),
-    'user':     os.getenv('DB_USER',     'TU_USUARIO'),
-    'password': os.getenv('DB_PASSWORD', 'TU_PASSWORD'),
+    'host':     os.getenv('MYSQL_ADDON_HOST'),
+    'port':     int(os.getenv('MYSQL_ADDON_PORT', '3306')),
+    'database': os.getenv('MYSQL_ADDON_DB'),
+    'user':     os.getenv('MYSQL_ADDON_USER'),
+    'password': os.getenv('MYSQL_ADDON_PASSWORD'),
     'charset':  'utf8mb4',
     'connection_timeout': 10,
 }

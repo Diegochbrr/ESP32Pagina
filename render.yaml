@@ -5,13 +5,13 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn backend:app
     envVars:
-      - key: DB_HOST
+      - key: MYSQL_ADDON_HOST
         sync: false
-      - key: DB_PORT
+      - key: MYSQL_ADDON_PORT
         sync: false
-      - key: DB_NAME
+      - key: MYSQL_ADDON_DB
         sync: false
-      - key: DB_USER
+      - key: MYSQL_ADDON_USER
         sync: false
-      - key: DB_PASSWORD
+      - key: MYSQL_ADDON_PASSWORD
         sync: false
