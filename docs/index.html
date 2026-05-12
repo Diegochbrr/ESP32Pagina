@@ -62,8 +62,7 @@
                         </select>
                     </div>
                     <p class="info-note">⚠ Serial Web requiere Chrome 89+ con flag
-                        <code>#enable-experimental-web-platform-features</code> activado.
-                    </p>
+                        <code>#enable-experimental-web-platform-features</code> activado.</p>
                     <button class="btn-connect" id="btnSerial">Conectar Serial</button>
                 </div>
 
@@ -241,6 +240,39 @@
                 <div class="raw-display" id="rawDisplay">—</div>
             </section>
 
+            <!-- Base de datos -->
+            <section class="card">
+                <h2 class="card-title">Base de Datos</h2>
+                <div class="field-group">
+                    <label>URL del Backend</label>
+                    <input type="text" id="dbUrl" value="https://esp32pagina.onrender.com"
+                        placeholder="http://localhost:5000" />
+                </div>
+                <div class="db-status-row">
+                    <span class="db-dot" id="dbDot"></span>
+                    <span class="db-status-text" id="dbStatus">Sin configurar</span>
+                </div>
+                <button class="btn-db-test" id="btnDbTest">⟳ Probar conexión</button>
+                <div class="db-info-row">
+                    <span class="db-info-label">Sesiones guardadas</span>
+                    <span class="db-info-val" id="dbSessionCount">—</span>
+                </div>
+                <div class="db-info-row">
+                    <span class="db-info-label">Última sesión</span>
+                    <span class="db-info-val" id="dbLastSession">—</span>
+                </div>
+            </section>
+
+            <!-- Historial de sesiones -->
+            <section class="card">
+                <div class="log-header">
+                    <h2 class="card-title">Historial</h2>
+                    <button class="btn-clear" id="btnRefreshHistory">↺</button>
+                </div>
+                <div class="history-body" id="historyBody">
+                    <p class="history-empty">Conecta la base de datos para ver el historial.</p>
+                </div>
+            </section>
 
         </aside>
 
